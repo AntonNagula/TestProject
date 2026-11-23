@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+#env:
+#  DOTNET_NOLOGO: true
+#  DOTNET_CLI_TELEMETRY_OPTOUT: true
+#  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore TestProject.slnx
+
+      - name: Build
+        run: dotnet build TestProject.slnx --configuration Release --no-restore
+
+      #- name: Test
+      #  run: dotnet test TestProject.slnx --configuration Release --no-build --verbosity normal
+
+      - name: Publish
+        run: dotnet publish AwesomeApi/AwesomeApi.csproj --configuration Release --no-build --output ./publish
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AwesomeApi
+          path: ./publish
+          retention-days: 1
