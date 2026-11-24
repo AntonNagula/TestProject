@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+**/*.suo
+**/Dockerfile*
+**/.dockerignore
+.git/
+.github/
+publish/
+README.md
+CLAUDE.md
