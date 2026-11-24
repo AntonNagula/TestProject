@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,6 +17,13 @@ concurrency:
 #  DOTNET_NOLOGO: true
 #  DOTNET_CLI_TELEMETRY_OPTOUT: true
 #  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+  AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  ECS_CLUSTER: my-fargate-cluster
 
 jobs:
   build:
@@ -33,18 +41,44 @@ jobs:
       - name: Restore
         run: dotnet restore TestProject.slnx
 
-      - name: Build
-        run: dotnet build TestProject.slnx --configuration Release --no-restore
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} \
+            | docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+      - name: Build image
+        id: build-image
+        run: |
+          SHORT_SHA=${GITHUB_SHA::8}
+          IMAGE_URI=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/aspnet:${SHORT_SHA}
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_OUTPUT
+          docker build -f AwesomeApi/Dockerfile -t $IMAGE_URI .
+
+      - name: Push image to ECR
+        run: |
+          IMAGE_URI=${{ steps.build-image.outputs.IMAGE_URI }}
+          docker push $IMAGE_URI
+
+      - name: Output deployed image
+        run: echo "Deployed image: ${{ steps.build-image.outputs.IMAGE_URI }}"
       #- name: Test
       #  run: dotnet test TestProject.slnx --configuration Release --no-build --verbosity normal
 
-      - name: Publish
-        run: dotnet publish AwesomeApi/AwesomeApi.csproj --configuration Release --no-build --output ./publish
+      #- name: Publish
+      #  run: dotnet publish AwesomeApi/AwesomeApi.csproj --configuration Release --no-build --output ./publish
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: AwesomeApi
-          path: ./publish
-          retention-days: 1
+      #- name: Upload artifact
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: AwesomeApi
+      #    path: ./publish
+      #    retention-days: 1
