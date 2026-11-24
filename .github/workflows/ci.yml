@@ -61,7 +61,7 @@ jobs:
           SHORT_SHA=${GITHUB_SHA::8}
           IMAGE_URI=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/aspnet:${SHORT_SHA}
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_OUTPUT
-          docker build -f AwesomeApi/Dockerfile -t $IMAGE_URI .
+          docker build --provenance=false -f AwesomeApi/Dockerfile -t $IMAGE_URI .
 
       - name: Push image to ECR
         run: |
