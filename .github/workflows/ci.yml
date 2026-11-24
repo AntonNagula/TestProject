@@ -68,8 +68,8 @@ jobs:
           IMAGE_URI=${{ steps.build-image.outputs.IMAGE_URI }}
           docker push $IMAGE_URI
 
-      - name: Output deployed image
-        run: echo "Deployed image: ${{ steps.build-image.outputs.IMAGE_URI }}"
+      #- name: Output deployed image
+      #  run: echo "Deployed image: ${{ steps.build-image.outputs.IMAGE_URI }}"
       #- name: Test
       #  run: dotnet test TestProject.slnx --configuration Release --no-build --verbosity normal
 
