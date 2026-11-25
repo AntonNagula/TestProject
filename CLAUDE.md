@@ -27,6 +27,7 @@ Docker: the build context is the repo root (`.dockerignore` lives there), so run
 ## Architecture
 
 - Endpoints are MVC controllers only. They live in `AwesomeApi/Controllers/`, are `[ApiController]` classes deriving from `ControllerBase`, and use explicit attribute routes such as `[Route("api/hello")]`. `Program.cs` (top-level statements) only registers services (`AddControllers`, `AddOpenApi`) and the pipeline (`UseHttpsRedirection`, `MapControllers`); no minimal API endpoints are mapped there.
+- Health checks use the built-in `AddHealthChecks()` with no extra packages. `/health/live` runs no checks and only shows that the process responds. `/health` runs every registered check. Register new dependency checks (DB, external APIs) on the `AddHealthChecks()` builder in `Program.cs` so `/health` covers them.
 - OpenAPI uses the built-in `Microsoft.AspNetCore.OpenApi` (`AddOpenApi` / `MapOpenApi`), not Swashbuckle. The document is served at `/openapi/v1.json`, and only in the Development environment.
 - Configuration is in `appsettings.json` plus `appsettings.Development.json`. Both launch profiles set `ASPNETCORE_ENVIRONMENT=Development`.
 
